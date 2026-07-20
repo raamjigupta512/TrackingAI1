@@ -2,7 +2,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Shipment, Rule } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiClient: GoogleGenAI | null = null;
+
+function getAiClient(): GoogleGenAI {
+  if (!aiClient) {
+    const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+    if (!key) {
+      throw new Error('GEMINI_API_KEY environment variable is not defined.');
+    }
+    aiClient = new GoogleGenAI({ apiKey: key });
+  }
+  return aiClient;
+}
 
 export const getLogisticsAssistantResponse = async (
   query: string, 
@@ -24,6 +35,7 @@ export const getLogisticsAssistantResponse = async (
   `;
 
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model,
       contents: [
@@ -39,6 +51,9 @@ export const getLogisticsAssistantResponse = async (
     return response.text || "Our systems are temporarily busy. Please contact Maersk Global Support.";
   } catch (error) {
     console.error("Gemini Error:", error);
+    if (error instanceof Error && error.message.includes('not defined')) {
+      return "The Maersk Global Logistics Assistant requires a GEMINI_API_KEY to be configured in your environment variables. Please check your Vercel deployment settings or .env file.";
+    }
     return "The Maersk AI engine is optimizing. Please try again or visit maersk.com.";
   }
 };
