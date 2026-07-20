@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLanguage } from '../src/context/LanguageContext';
 import { Shipment } from '../types';
 import { 
-  ResponsiveContainer, 
   BarChart, 
   Bar, 
   XAxis, 
@@ -44,6 +43,25 @@ export const DashboardVisualizer: React.FC<DashboardVisualizerProps> = ({ shipme
   const { language, t } = useLanguage();
   const [chartMode, setChartMode] = useState<'combined' | 'volume' | 'transit'>('combined');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 500, height: 280 });
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return;
+      const { width, height } = entries[0].contentRect;
+      setDimensions({
+        width: width || 500,
+        height: height || 280
+      });
+    });
+    resizeObserver.observe(chartContainerRef.current);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Group and sort shipment metrics chronologically by departure month
   const chartData = useMemo(() => {
@@ -247,8 +265,10 @@ export const DashboardVisualizer: React.FC<DashboardVisualizerProps> = ({ shipme
           {t('graph_live_operational', 'Live Operational Telemetry')}
         </div>
 
-        <ResponsiveContainer width="100%" height="100%">
+        <div ref={chartContainerRef} className="w-full h-full min-h-[260px]">
           <BarChart
+            width={dimensions.width}
+            height={dimensions.height}
             data={chartData}
             margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
             onMouseMove={(state) => {
@@ -353,7 +373,7 @@ export const DashboardVisualizer: React.FC<DashboardVisualizerProps> = ({ shipme
               </Bar>
             )}
           </BarChart>
-        </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Information Helper Disclaimer Footnote */}

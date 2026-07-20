@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLanguage } from '../src/context/LanguageContext';
 import { Shipment, ShipmentStatus } from '../types';
 import { 
-  ResponsiveContainer, 
   ComposedChart, 
   Line, 
   XAxis, 
@@ -65,6 +64,25 @@ const MilestoneProgressTracker: React.FC<MilestoneProgressTrackerProps> = ({ shi
   const { language, t } = useLanguage();
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
   const [filterMode, setFilterMode] = useState<'all' | 'expected' | 'actual'>('all');
+
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 500, height: 280 });
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return;
+      const { width, height } = entries[0].contentRect;
+      setDimensions({
+        width: width || 500,
+        height: height || 280
+      });
+    });
+    resizeObserver.observe(chartContainerRef.current);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   const formatDateLabel = (dateStr: string): string => {
     try {
@@ -430,8 +448,10 @@ const MilestoneProgressTracker: React.FC<MilestoneProgressTrackerProps> = ({ shi
               {t('graph_clickable', 'Node-Clickable Plot')}
             </div>
             
-            <ResponsiveContainer width="100%" height="100%">
+            <div ref={chartContainerRef} className="w-full h-full min-h-[260px]">
               <ComposedChart
+                width={dimensions.width}
+                height={dimensions.height}
                 data={chartData}
                 margin={{ top: 15, right: 15, left: -25, bottom: 5 }}
                 onClick={handleChartClick}
@@ -544,7 +564,7 @@ const MilestoneProgressTracker: React.FC<MilestoneProgressTrackerProps> = ({ shi
                   strokeDasharray="3 3"
                 />
               </ComposedChart>
-            </ResponsiveContainer>
+            </div>
           </div>
           
           <div className="flex items-center justify-between px-2 text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">
