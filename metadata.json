@@ -1,0 +1,11 @@
+{
+  "name": "Maersk Global Shipment Portal",
+  "description": "High-performance logistics management dashboard for Maersk customers to track shipments, view schedules, and interact with an AI-powered logistics assistant.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

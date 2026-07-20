@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string", "enum": ["Customer", "Agent"] }
+      },
+      "required": ["email", "name", "role"]
+    },
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Shipment cargo container with tracking details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vesselName": { "type": "string" },
+        "voyageDirection": { "type": "string" },
+        "paymentReference": { "type": "string" },
+        "placeOfReceipt": { "type": "string" },
+        "portOfLoading": { "type": "string" },
+        "portOfDischarge": { "type": "string" },
+        "placeOfDelivery": { "type": "string" },
+        "origin": { "type": "string" },
+        "destination": { "type": "string" },
+        "originCode": { "type": "string" },
+        "destinationCode": { "type": "string" },
+        "status": { "type": "string" },
+        "delayReason": { "type": "string" },
+        "delayTime": { "type": "string" },
+        "estimatedArrival": { "type": "string" },
+        "departureDate": { "type": "string" },
+        "containerCount": { "type": "number" },
+        "weight": { "type": "string" },
+        "contents": { "type": "string" },
+        "trackingHistory": { "type": "array" },
+        "etaAlertsEnabled": { "type": "boolean" },
+        "isAffectedShipment": { "type": "boolean" },
+        "appliedRuleId": { "type": "string" },
+        "ruleEvaluationTimestamp": { "type": "string" },
+        "delayDaysCalculated": { "type": "number" },
+        "originalEstimatedArrival": { "type": "string" }
+      },
+      "required": ["id", "vesselName", "origin", "destination", "originCode", "destinationCode", "status", "departureDate", "estimatedArrival", "containerCount", "weight", "contents", "trackingHistory"]
+    },
+    "Rule": {
+      "title": "Rule",
+      "description": "Logistics rule that automatically triggers shipment actions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "targetStatus": { "type": "string" },
+        "delayReason": { "type": "string" },
+        "delayDays": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "originPort": { "type": "string" },
+        "destinationPort": { "type": "string" },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "deployedAt": { "type": "number" }
+      },
+      "required": ["id", "name", "description", "targetStatus", "delayReason", "delayDays", "isActive"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Profiles of registered users"
+    },
+    "shipments": {
+      "schema": "Shipment",
+      "description": "Shipments list"
+    },
+    "rules": {
+      "schema": "Rule",
+      "description": "Rules for automatic shipment delay tracking"
+    }
+  }
+}

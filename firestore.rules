@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net - Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE UTILITIES & PREDICATES ---
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAgent() {
+      return isSignedIn() && getUserRole() == 'Agent';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- USER PROFILE RULES ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'name', 'company', 'role']) 
+          && data.keys().size() == 4
+          && data.email is string && data.email.size() <= 128
+          && data.name is string && data.name.size() <= 128
+          && data.company is string && data.company.size() <= 128
+          && data.role in ['Customer', 'Agent'];
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      // On creation, a user cannot self-assign the "Agent" role.
+      allow create: if isOwner(userId) 
+        && isValidUser(request.resource.data)
+        && (request.resource.data.role == 'Customer' || request.auth.token.email == 'manav.imt01@gmail.com');
+        
+      // On update, a user cannot escalate their role unless they are already an Agent.
+      allow update: if isOwner(userId)
+        && isValidUser(request.resource.data)
+        && (request.resource.data.role == resource.data.role || isAgent());
+
+      allow delete: if false;
+    }
+
+    // --- SHIPMENT RULES ---
+    match /shipments/{shipmentId} {
+      function isValidShipment(data) {
+        return data.id is string && data.id.size() <= 64
+          && data.vesselName is string && data.vesselName.size() <= 128
+          && data.origin is string && data.origin.size() <= 128
+          && data.destination is string && data.destination.size() <= 128
+          && data.status in ['Pending', 'Loading', 'At Sea', 'Awaiting Customs', 'Customs Clearance', 'Out for Delivery', 'Delivered', 'Delayed', 'Exception']
+          && data.containerCount is int && data.containerCount >= 1 && data.containerCount <= 1000
+          && data.weight is string && data.weight.size() <= 64
+          && data.contents is string && data.contents.size() <= 512;
+      }
+
+      allow read, list: if isSignedIn();
+      allow create, update: if isAgent() && isValidId(shipmentId) && isValidShipment(request.resource.data);
+      allow delete: if false; // Shipments represent a persistent corporate ledger and cannot be deleted via clients
+    }
+
+    // --- POLICY AUTOMATION RULES ---
+    match /rules/{ruleId} {
+      function isValidRule(data) {
+        return data.id is string && data.id.size() <= 64
+          && data.name is string && data.name.size() <= 128
+          && data.description is string && data.description.size() <= 1000
+          && data.targetStatus in ['Pending', 'Loading', 'At Sea', 'Awaiting Customs', 'Customs Clearance', 'Out for Delivery', 'Delivered', 'Delayed', 'Exception']
+          && data.delayReason is string && data.delayReason.size() <= 256
+          && data.delayDays is string && data.delayDays.size() <= 64
+          && data.isActive is bool;
+      }
+
+      allow read, list: if isSignedIn();
+      allow create, update: if isAgent() && isValidId(ruleId) && isValidRule(request.resource.data);
+      allow delete: if isAgent() && isValidId(ruleId);
+    }
+  }
+}
